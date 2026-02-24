@@ -1,14 +1,14 @@
 # 🧠 ML/AI Research Knowledge Graph
 
-An interactive bibliometric network visualization of the **Machine Learning and Artificial Intelligence** research landscape. Explore connections between authors, research subtopics, and papers with full APA citation data.
+An interactive bibliometric network visualization of the applications of **Tensor Networks to Machine Learning and Artificial Intelligence**. Explore connections between authors, research subtopics, and papers with full APA citation data.
 
-👉 **[View the live graph](https://YOUR_USERNAME.github.io/research-graph/graph_d3.html)**
+👉 **[View the live graph](https://gvalverde21.github.io/research-graph/graph_d3.html)**
 
 ---
 
 ## Preview
 
-> *(Add a screenshot of your graph here)*
+> ![alt text](image.png)
 
 ---
 
