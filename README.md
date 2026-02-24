@@ -2,7 +2,7 @@
 
 An interactive bibliometric network visualization of the applications of **Tensor Networks to Machine Learning and Artificial Intelligence**. Explore connections between authors, research subtopics, and papers with full APA citation data.
 
-👉 **[View the live graph](https://gvalverde21.github.io/research-graph/graph_d3.html)**
+👉 **[View the live graph](https://gvalverde21.github.io/research-graph-TensorNetworks-MachineLearning/graph_d3.html)**
 
 ---
 
