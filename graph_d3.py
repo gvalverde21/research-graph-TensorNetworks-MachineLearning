@@ -85,7 +85,6 @@ def format_apa_html(raw_bibtex):
         pages   = get_field(entry, "pages")
         doi     = get_field(entry, "doi")
 
-        # plain text for APA copy
         plain = f"{author} ({year}). {title}. {journal}"
         if volume: plain += f", {volume}"
         if issue:  plain += f"({issue})"
@@ -109,7 +108,6 @@ def format_apa_html(raw_bibtex):
             link = f"https://doi.org/{clean_doi}"
             citation += f" <a href='{link}' target='_blank' class='apa-doi'>{link}</a>"
 
-        # copy button per entry
         plain_escaped = plain.replace("'", "\\'").replace("\n", " ")
         citation = f"<div class='apa-entry'>{citation}<button class='copy-btn' onclick=\"copyAPA('{plain_escaped}')\">Copy APA</button></div>"
         html_output += citation
@@ -194,13 +192,12 @@ html = f"""<!DOCTYPE html>
 
   .edge {{ stroke: #444; stroke-width: 1px; transition: opacity 0.2s; }}
   .edge.dimmed {{ opacity: 0.05; }}
-
   .node-label {{ fill: white; text-anchor: middle; dominant-baseline: middle; pointer-events: none; user-select: none; }}
   .node.dimmed circle {{ opacity: 0.08; }}
   .node.dimmed text   {{ opacity: 0.08; }}
   .node-highlight circle {{ stroke: #FF7AA2 !important; stroke-width: 3px !important; }}
 
-  /* ── Tooltip ── */
+  /* Tooltip */
   #tooltip {{
     position: fixed; pointer-events: none; z-index: 3000;
     background: rgba(18,18,18,0.95); border: 1px solid rgba(255,255,255,0.15);
@@ -209,7 +206,7 @@ html = f"""<!DOCTYPE html>
     box-shadow: 0 2px 8px rgba(0,0,0,0.5);
   }}
 
-  /* ── Left controls panel ── */
+  /* Left controls */
   #controls {{
     position: fixed; top: 16px; left: 16px; z-index: 2000;
     display: flex; flex-direction: column; gap: 10px; width: 300px;
@@ -246,12 +243,37 @@ html = f"""<!DOCTYPE html>
   .ctrl-card label input[type=checkbox] {{ accent-color: #FF7AA2; width: 14px; height: 14px; }}
   .ctrl-title {{ font-size: 11px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }}
 
-  /* Year slider */
-  .year-row {{ display: flex; align-items: center; gap: 8px; }}
-  .year-row input[type=range] {{ flex: 1; accent-color: #FF7AA2; }}
-  .year-val {{ font-size: 12px; color: #eee; min-width: 34px; text-align: center; }}
+  /* ── Dual range slider ── */
+  .range-wrap {{
+    position: relative; height: 28px; display: flex; align-items: center;
+  }}
+  .range-wrap input[type=range] {{
+    position: absolute; width: 100%; pointer-events: none;
+    -webkit-appearance: none; appearance: none;
+    background: transparent; height: 4px;
+  }}
+  .range-wrap input[type=range]::-webkit-slider-thumb {{
+    pointer-events: all; -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #FF7AA2; cursor: pointer; border: 2px solid #111;
+  }}
+  .range-wrap input[type=range]::-moz-range-thumb {{
+    pointer-events: all; width: 16px; height: 16px; border-radius: 50%;
+    background: #FF7AA2; cursor: pointer; border: 2px solid #111;
+  }}
+  .range-track {{
+    position: absolute; height: 4px; border-radius: 2px;
+    background: #333; width: 100%;
+  }}
+  .range-fill {{
+    position: absolute; height: 4px; border-radius: 2px; background: #FF7AA2;
+  }}
+  .year-labels {{
+    display: flex; justify-content: space-between;
+    font-size: 12px; color: #eee; margin-top: 2px;
+  }}
 
-  /* Buttons row */
+  /* Buttons */
   .btn-row {{ display: flex; gap: 8px; }}
   .ctrl-btn {{
     flex: 1; padding: 7px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.15);
@@ -263,14 +285,46 @@ html = f"""<!DOCTYPE html>
 
   /* Stats */
   .stats-row {{ display: flex; gap: 6px; }}
-  .stat-box {{
-    flex: 1; background: rgba(30,30,30,0.8); border-radius: 6px;
-    padding: 8px; text-align: center;
-  }}
+  .stat-box {{ flex: 1; background: rgba(30,30,30,0.8); border-radius: 6px; padding: 8px; text-align: center; }}
   .stat-val {{ font-size: 18px; font-weight: 700; color: #fff; }}
   .stat-lbl {{ font-size: 10px; color: #888; margin-top: 2px; }}
 
-  /* ── Side panel ── */
+  /* Help button */
+  #btn-help {{
+    position: fixed; bottom: 20px; right: 20px; z-index: 2000;
+    width: 40px; height: 40px; border-radius: 50%;
+    background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.2);
+    color: #eee; font-size: 18px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5); transition: background 0.15s;
+  }}
+  #btn-help:hover {{ background: rgba(255,122,162,0.2); border-color: #FF7AA2; }}
+
+  /* Help modal */
+  #help-overlay {{
+    display: none; position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,0.6); align-items: center; justify-content: center;
+  }}
+  #help-overlay.open {{ display: flex; }}
+  #help-modal {{
+    background: #1a1a1a; border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 12px; padding: 28px 32px; max-width: 520px; width: 90%;
+    color: #eee; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    max-height: 85vh; overflow-y: auto;
+  }}
+  #help-modal h2 {{ color: #fff; margin-bottom: 18px; font-size: 18px; }}
+  #help-modal h3 {{ color: #FF7AA2; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin: 16px 0 8px; }}
+  #help-modal p, #help-modal li {{ font-size: 13px; color: #ccc; line-height: 1.6; }}
+  #help-modal ul {{ padding-left: 18px; display: flex; flex-direction: column; gap: 6px; }}
+  #help-modal .legend-dot {{ display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }}
+  #help-close {{
+    margin-top: 20px; width: 100%; padding: 9px; border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.15); background: rgba(255,122,162,0.15);
+    color: #FF7AA2; cursor: pointer; font-size: 13px;
+  }}
+  #help-close:hover {{ background: rgba(255,122,162,0.3); }}
+
+  /* Side panel */
   #sidepanel {{
     position: fixed; top: 12px; right: 12px; width: 35%; max-width: 500px;
     height: calc(100vh - 24px); background: rgba(18,18,18,0.95);
@@ -281,26 +335,22 @@ html = f"""<!DOCTYPE html>
   #sidepanel h3 {{ margin: 0; color: #fff; border-bottom: 1px solid #444; padding-bottom: 10px; }}
   .hint {{ font-style: italic; color: #888; font-size: 13px; }}
   .apa-entry {{
-    padding-left: 24px; text-indent: -24px;
-    font-size: 13px; line-height: 1.5; color: #ddd;
-    border-bottom: 1px solid rgba(255,255,255,0.05);
-    padding-bottom: 10px; margin-bottom: 6px; position: relative;
+    padding-left: 24px; text-indent: -24px; font-size: 13px; line-height: 1.5; color: #ddd;
+    border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; margin-bottom: 6px;
   }}
   .apa-journal {{ font-style: italic; color: #aaa; }}
   .apa-doi {{ color: #FF7AA2; text-decoration: none; word-break: break-all; }}
   .apa-doi:hover {{ text-decoration: underline; }}
   .copy-btn {{
-    display: inline-block; margin-top: 6px; margin-left: 0;
-    padding: 3px 10px; font-size: 11px; border-radius: 4px;
-    border: 1px solid rgba(255,122,162,0.4); background: transparent;
-    color: #FF7AA2; cursor: pointer; text-indent: 0;
+    display: inline-block; margin-top: 6px; padding: 3px 10px; font-size: 11px;
+    border-radius: 4px; border: 1px solid rgba(255,122,162,0.4);
+    background: transparent; color: #FF7AA2; cursor: pointer; text-indent: 0;
   }}
   .copy-btn:hover {{ background: rgba(255,122,162,0.15); }}
   .copy-toast {{
     position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
     background: #3CB371; color: #fff; padding: 8px 20px; border-radius: 20px;
-    font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.3s;
-    pointer-events: none;
+    font-size: 13px; z-index: 9999; opacity: 0; transition: opacity 0.3s; pointer-events: none;
   }}
 </style>
 </head>
@@ -311,14 +361,11 @@ html = f"""<!DOCTYPE html>
 
 <!-- Left controls -->
 <div id="controls">
-
-  <!-- Search -->
   <div id="searchbox">
     <input type="text" id="searchinput" placeholder="🔍  Search nodes or papers..." autocomplete="off" />
     <div id="search-results"></div>
   </div>
 
-  <!-- Filters + stats -->
   <div class="ctrl-card">
     <div class="ctrl-title">Statistics</div>
     <div class="stats-row">
@@ -333,17 +380,73 @@ html = f"""<!DOCTYPE html>
     <label><input type="checkbox" id="chk-other"    checked> <span style="color:#9E9E9E">●</span> Other</label>
 
     <div class="ctrl-title">Filter by publication year</div>
-    <div class="year-row">
-      <span class="year-val" id="year-from-lbl">{global_min_year}</span>
+    <div class="range-wrap">
+      <div class="range-track"></div>
+      <div class="range-fill" id="range-fill"></div>
       <input type="range" id="year-from" min="{global_min_year}" max="{global_max_year}" value="{global_min_year}" step="1">
       <input type="range" id="year-to"   min="{global_min_year}" max="{global_max_year}" value="{global_max_year}" step="1">
-      <span class="year-val" id="year-to-lbl">{global_max_year}</span>
+    </div>
+    <div class="year-labels">
+      <span id="year-from-lbl">{global_min_year}</span>
+      <span id="year-to-lbl">{global_max_year}</span>
     </div>
 
     <div class="btn-row">
       <button class="ctrl-btn" id="btn-reset">⟳ Reset view</button>
       <button class="ctrl-btn" id="btn-neighbors">👁 Neighbors</button>
     </div>
+  </div>
+</div>
+
+<!-- Help button -->
+<button id="btn-help">?</button>
+
+<!-- Help modal -->
+<div id="help-overlay">
+  <div id="help-modal">
+    <h2>📖 How to use this graph</h2>
+
+    <h3>Navigation</h3>
+    <ul>
+      <li><b>Scroll</b> to zoom in and out.</li>
+      <li><b>Click and drag</b> on the background to pan.</li>
+      <li><b>Drag a node</b> to reposition it freely.</li>
+      <li>Click <b>⟳ Reset view</b> to return to the original layout.</li>
+    </ul>
+
+    <h3>Nodes</h3>
+    <ul>
+      <li><span class="legend-dot" style="background:#3CB371"></span><b>Green nodes</b> — research subtopics. Size reflects relevance.</li>
+      <li><span class="legend-dot" style="background:#FF7AA2"></span><b>Pink nodes</b> — authors. Size reflects number of publications.</li>
+      <li><b>Click any node</b> to open its APA citations in the right panel.</li>
+      <li><b>Hover</b> over a node to see a quick tooltip with name, type, and year range.</li>
+    </ul>
+
+    <h3>Search</h3>
+    <ul>
+      <li>Use the search bar to find <b>nodes by name</b> or <b>papers by title or author</b>.</li>
+      <li>Click a result to fly to that node on the graph.</li>
+    </ul>
+
+    <h3>Filters</h3>
+    <ul>
+      <li>Toggle <b>node types</b> on/off using the checkboxes.</li>
+      <li>Use the <b>year slider</b> to show only nodes with publications in a given range. Drag the left handle for the start year and the right handle for the end year.</li>
+    </ul>
+
+    <h3>Neighbor mode</h3>
+    <ul>
+      <li>Activate <b>👁 Neighbors</b>, then click a node to highlight only its direct connections and dim everything else.</li>
+    </ul>
+
+    <h3>Citations</h3>
+    <ul>
+      <li>The right panel shows APA-formatted citations for the selected node.</li>
+      <li>Click <b>Copy APA</b> on any paper to copy the citation to your clipboard.</li>
+      <li>Click the <b>DOI link</b> to open the paper directly.</li>
+    </ul>
+
+    <button id="help-close">Got it ✓</button>
   </div>
 </div>
 
@@ -365,29 +468,26 @@ const graphData = {graph_data};
 const GLOBAL_MIN_YEAR = {global_min_year};
 const GLOBAL_MAX_YEAR = {global_max_year};
 
-const svg  = d3.select("#svg");
-const g    = d3.select("#zoom-group");
-const tip  = document.getElementById("tooltip");
+const svg = d3.select("#svg");
+const g   = d3.select("#zoom-group");
+const tip = document.getElementById("tooltip");
 
 // ── Zoom & Pan ──────────────────────────────────────────────
 const zoom = d3.zoom()
   .scaleExtent([0.05, 8])
   .on("zoom", e => g.attr("transform", e.transform));
 svg.call(zoom);
-
-// Initial transform saved for reset
 let initTransform;
 
 // ── State ───────────────────────────────────────────────────
 const nodePos = {{}};
 graphData.nodes.forEach(n => {{ nodePos[n.id] = {{ x: n.x, y: n.y }}; }});
 
-let neighborMode  = false;
+let neighborMode   = false;
 let selectedNodeId = null;
 let filterSubtopic = true, filterAuthor = true, filterOther = true;
 let yearFrom = GLOBAL_MIN_YEAR, yearTo = GLOBAL_MAX_YEAR;
 
-// adjacency for neighbor mode
 const adjSet = {{}};
 graphData.edges.forEach(e => {{
   if (!adjSet[e.source]) adjSet[e.source] = new Set();
@@ -398,9 +498,7 @@ graphData.edges.forEach(e => {{
 
 // ── Draw edges ──────────────────────────────────────────────
 const edgeLines = d3.select("#edges-layer")
-  .selectAll("line")
-  .data(graphData.edges)
-  .join("line")
+  .selectAll("line").data(graphData.edges).join("line")
   .attr("class", "edge")
   .attr("x1", d => nodePos[d.source]?.x ?? 0)
   .attr("y1", d => nodePos[d.source]?.y ?? 0)
@@ -409,9 +507,7 @@ const edgeLines = d3.select("#edges-layer")
 
 // ── Draw nodes ──────────────────────────────────────────────
 const nodeG = d3.select("#nodes-layer")
-  .selectAll("g.node")
-  .data(graphData.nodes)
-  .join("g")
+  .selectAll("g.node").data(graphData.nodes).join("g")
   .attr("class", "node")
   .attr("transform", d => `translate(${{nodePos[d.id].x}}, ${{nodePos[d.id].y}})`)
   .style("cursor", "pointer")
@@ -434,22 +530,17 @@ const nodeG = d3.select("#nodes-layer")
   .on("mouseout", () => {{ tip.style.display = "none"; }});
 
 nodeG.append("circle")
-  .attr("r", d => d.radius)
-  .attr("fill", d => d.color)
-  .attr("stroke", "#222")
-  .attr("stroke-width", 0.5);
+  .attr("r", d => d.radius).attr("fill", d => d.color)
+  .attr("stroke", "#222").attr("stroke-width", 0.5);
 
 nodeG.append("text")
-  .attr("class", "node-label")
-  .attr("font-size", d => d.fontSize)
-  .text(d => d.label);
+  .attr("class", "node-label").attr("font-size", d => d.fontSize).text(d => d.label);
 
 // ── Drag ────────────────────────────────────────────────────
 const drag = d3.drag()
   .on("start", function(event) {{ event.sourceEvent.stopPropagation(); d3.select(this).raise(); }})
   .on("drag", function(event, d) {{
-    nodePos[d.id].x += event.dx;
-    nodePos[d.id].y += event.dy;
+    nodePos[d.id].x += event.dx; nodePos[d.id].y += event.dy;
     d3.select(this).attr("transform", `translate(${{nodePos[d.id].x}}, ${{nodePos[d.id].y}})`);
     edgeLines.filter(e => e.source === d.id).attr("x1", nodePos[d.id].x).attr("y1", nodePos[d.id].y);
     edgeLines.filter(e => e.target === d.id).attr("x2", nodePos[d.id].x).attr("y2", nodePos[d.id].y);
@@ -468,12 +559,9 @@ function showPanel(d) {{
 svg.on("click", () => {{
   document.getElementById("sidepanel").innerHTML =
     `<h3>Selected Node</h3><div class="hint">Click a node to view details.</div>`;
-  clearHighlight();
-  if (neighborMode) clearDim();
-  selectedNodeId = null;
+  clearHighlight(); if (neighborMode) clearDim(); selectedNodeId = null;
 }});
 
-// ── Highlight ────────────────────────────────────────────────
 function highlightNode(id) {{
   clearHighlight();
   d3.selectAll("g.node").filter(d => d.id === id).classed("node-highlight", true);
@@ -487,16 +575,13 @@ function applyNeighborDim(id) {{
   edgeLines.classed("dimmed", e => e.source !== id && e.target !== id);
 }}
 function clearDim() {{
-  nodeG.classed("dimmed", false);
-  edgeLines.classed("dimmed", false);
+  nodeG.classed("dimmed", false); edgeLines.classed("dimmed", false);
 }}
-
-const btnNeighbors = document.getElementById("btn-neighbors");
-btnNeighbors.addEventListener("click", () => {{
+document.getElementById("btn-neighbors").addEventListener("click", () => {{
   neighborMode = !neighborMode;
-  btnNeighbors.classList.toggle("active", neighborMode);
-  if (!neighborMode) {{ clearDim(); }}
-  else if (selectedNodeId) {{ applyNeighborDim(selectedNodeId); }}
+  document.getElementById("btn-neighbors").classList.toggle("active", neighborMode);
+  if (!neighborMode) clearDim();
+  else if (selectedNodeId) applyNeighborDim(selectedNodeId);
 }});
 
 // ── Copy APA ─────────────────────────────────────────────────
@@ -508,7 +593,7 @@ function copyAPA(text) {{
   }});
 }}
 
-// ── Filter logic ─────────────────────────────────────────────
+// ── Filters ──────────────────────────────────────────────────
 function applyFilters() {{
   let visible = 0;
   nodeG.each(function(d) {{
@@ -516,48 +601,49 @@ function applyFilters() {{
       (filterSubtopic && d.type.toLowerCase().includes("subtopic")) ||
       (filterAuthor   && d.type.toLowerCase().includes("author"))   ||
       (filterOther    && !d.type.toLowerCase().includes("subtopic") && !d.type.toLowerCase().includes("author"));
-
-    // year filter: show node if it has no year data OR has papers in range
     const yearOk = !d.minYear || (d.maxYear >= yearFrom && d.minYear <= yearTo);
-
     const show = typeOk && yearOk;
     d3.select(this).style("display", show ? null : "none");
     if (show) visible++;
   }});
-
-  // hide edges where either endpoint is hidden
   const hiddenIds = new Set();
-  nodeG.each(function(d) {{
-    if (d3.select(this).style("display") === "none") hiddenIds.add(d.id);
-  }});
+  nodeG.each(function(d) {{ if (d3.select(this).style("display") === "none") hiddenIds.add(d.id); }});
   edgeLines.style("display", e => (hiddenIds.has(e.source) || hiddenIds.has(e.target)) ? "none" : null);
-
   document.getElementById("stat-visible").textContent = visible;
 }}
 
-// Type checkboxes
 document.getElementById("chk-subtopic").addEventListener("change", e => {{ filterSubtopic = e.target.checked; applyFilters(); }});
 document.getElementById("chk-author").addEventListener("change",   e => {{ filterAuthor   = e.target.checked; applyFilters(); }});
 document.getElementById("chk-other").addEventListener("change",    e => {{ filterOther    = e.target.checked; applyFilters(); }});
 
-// Year sliders
+// ── Dual range year slider ───────────────────────────────────
 const sliderFrom = document.getElementById("year-from");
 const sliderTo   = document.getElementById("year-to");
 const lblFrom    = document.getElementById("year-from-lbl");
 const lblTo      = document.getElementById("year-to-lbl");
+const fill       = document.getElementById("range-fill");
+
+function updateRangeFill() {{
+  const min = GLOBAL_MIN_YEAR, max = GLOBAL_MAX_YEAR;
+  const pctFrom = (yearFrom - min) / (max - min) * 100;
+  const pctTo   = (yearTo   - min) / (max - min) * 100;
+  fill.style.left  = pctFrom + "%";
+  fill.style.width = (pctTo - pctFrom) + "%";
+}}
 
 sliderFrom.addEventListener("input", () => {{
   yearFrom = parseInt(sliderFrom.value);
   if (yearFrom > yearTo) {{ yearTo = yearFrom; sliderTo.value = yearFrom; lblTo.textContent = yearFrom; }}
   lblFrom.textContent = yearFrom;
-  applyFilters();
+  updateRangeFill(); applyFilters();
 }});
 sliderTo.addEventListener("input", () => {{
   yearTo = parseInt(sliderTo.value);
   if (yearTo < yearFrom) {{ yearFrom = yearTo; sliderFrom.value = yearTo; lblFrom.textContent = yearTo; }}
   lblTo.textContent = yearTo;
-  applyFilters();
+  updateRangeFill(); applyFilters();
 }});
+updateRangeFill();
 
 // ── Reset view ───────────────────────────────────────────────
 document.getElementById("btn-reset").addEventListener("click", () => {{
@@ -571,8 +657,7 @@ function flyTo(nodeData) {{
   const tx = W/2 - scale * nodePos[nodeData.id].x;
   const ty = H/2 - scale * nodePos[nodeData.id].y;
   svg.transition().duration(600).call(zoom.transform, d3.zoomIdentity.translate(tx, ty).scale(scale));
-  showPanel(nodeData);
-  highlightNode(nodeData.id);
+  showPanel(nodeData); highlightNode(nodeData.id);
 }}
 
 // ── Search ───────────────────────────────────────────────────
@@ -616,6 +701,12 @@ document.addEventListener("click", e => {{
   if (!document.getElementById("searchbox").contains(e.target))
     searchResults.style.display = "none";
 }});
+
+// ── Help modal ───────────────────────────────────────────────
+const helpOverlay = document.getElementById("help-overlay");
+document.getElementById("btn-help").addEventListener("click", () => {{ helpOverlay.classList.add("open"); }});
+document.getElementById("help-close").addEventListener("click", () => {{ helpOverlay.classList.remove("open"); }});
+helpOverlay.addEventListener("click", e => {{ if (e.target === helpOverlay) helpOverlay.classList.remove("open"); }});
 
 // ── Initial zoom to fit ─────────────────────────────────────
 const xs = graphData.nodes.map(n => n.x);
